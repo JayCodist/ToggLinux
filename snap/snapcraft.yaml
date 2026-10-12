@@ -27,7 +27,7 @@ title: Trackfecta
 # The store listing icon is taken from this path (relative to the project
 # root) at upload time. Without it the store shows a generic placeholder.
 icon: src-tauri/icons/icon.png
-version: "1.0.0"
+version: "1.0.1"
 license: MIT
 summary: Beautiful but unofficial Toggl Track desktop client for Linux
 # These four sync to the "More links" section of the store listing.
@@ -61,8 +61,17 @@ environment:
 apps:
   trackfecta:
     command: usr/bin/trackfecta
-    # The GNOME extension auto-detects the desktop entry by common-id.
+    # common-id ties the snap to its desktop entry and metainfo for the
+    # GNOME extension and appstream. It does NOT make snapcraft find the
+    # entry; that needs the explicit desktop: key below.
     common-id: io.github.jaycodist.trackfecta
+    # Path (relative to the prime dir) to the desktop entry. snapcraft copies
+    # this file into meta/gui/ and rewrites Exec= to the snap wrapper. snapd
+    # only registers launcher entries found under meta/gui/, so WITHOUT this
+    # key the installed snap has no .desktop file, no launcher, and the Store
+    # shows no Open button. The recipe has no adopt-info/parse-info, so
+    # snapcraft cannot auto-detect the entry; declaring it here is required.
+    desktop: usr/share/applications/io.github.jaycodist.trackfecta.desktop
     extensions:
       - gnome
     # The gnome extension already assigns desktop, desktop-legacy, gsettings,

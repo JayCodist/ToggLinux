@@ -169,6 +169,13 @@ def make_mask(size=48, pad=2):
     return knocked.crop(box).resize((size, size), Image.LANCZOS)
 
 
+# Sizes for the freedesktop hicolor icon ladder. The Linux bundles install
+# one PNG per size so the launcher never upscales a smaller bitmap (which
+# renders soft). 256x256@2 gets the 512px render. Keep in sync with the
+# bundle.linux.*.files maps in tauri.conf.json.
+HICOLOR_SIZES = [16, 22, 24, 32, 48, 64, 96, 128, 192, 256, 512]
+
+
 def main():
     here = os.path.dirname(os.path.abspath(__file__))
     root = os.path.join(here, "..")
@@ -178,6 +185,15 @@ def main():
     # accent dial and crown with a white chevron and underscore.
     draw_logo(1024, tile=False).save(icon_path)
     print(f"wrote {icon_path}", file=sys.stderr)
+
+    # Hicolor ladder: the mark on a transparent canvas, rendered natively at
+    # each size (no upscale). Consumed by the deb/rpm/appimage files maps.
+    hicolor_dir = os.path.join(root, "src-tauri", "icons", "hicolor")
+    os.makedirs(hicolor_dir, exist_ok=True)
+    for size in HICOLOR_SIZES:
+        out = os.path.join(hicolor_dir, f"trackfecta-{size}.png")
+        draw_logo(size, tile=False).save(out)
+        print(f"wrote {out}", file=sys.stderr)
 
     data = make_mask().tobytes()
     with open(bin_path, "wb") as f:

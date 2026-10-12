@@ -132,11 +132,15 @@ global shortcut works on X11 only. On Wayland you still have two options:
 
 ### Flatpak and Snap
 
-Manifests exist in this repo (`flatpak/io.github.jaycodist.trackfecta.yml` and
-`snap/snapcraft.yaml`) but are **not yet validated or published**. A tray app
-in a sandbox needs the StatusNotifier and Secret Service interfaces set up
-correctly, and store review is strict. See
-[Packaging status](#packaging-status). Contributions to finish these are
+The Snap is published on the
+[Snap Store](https://snapcraft.io/trackfecta) (`snap/snapcraft.yaml`). Install
+with `sudo snap install trackfecta`. The first run needs the keyring plug
+connected once: `sudo snap connect trackfecta:password-manager-service`.
+
+The Flatpak manifest (`flatpak/io.github.jaycodist.trackfecta.yml`) is drafted
+but **not yet on Flathub**. A tray app in a sandbox needs the StatusNotifier
+and Secret Service interfaces set up correctly, and store review is strict.
+See [Packaging status](#packaging-status). Contributions to finish these are
 welcome.
 
 ## Getting started
@@ -210,7 +214,7 @@ To build signed artifacts locally, export `TAURI_SIGNING_PRIVATE_KEY` and
 | `.rpm` | Built and signed by CI, published on Releases | same |
 | AppImage | Built, signed, and self-updating | same, plus the in-app updater |
 | Flatpak | Manifest drafted, **not yet validated or on Flathub** | `flatpak/io.github.jaycodist.trackfecta.yml` |
-| Snap | Recipe drafted, **not yet validated or in the Store** | `snap/snapcraft.yaml` |
+| Snap | Published to the Store (candidate and stable) | `snap/snapcraft.yaml`, [snapcraft.io/trackfecta](https://snapcraft.io/trackfecta) |
 
 The Flatpak and Snap paths need the tray (StatusNotifierItem) and the keyring
 (Secret Service) to work inside the sandbox, and both stores review D-Bus

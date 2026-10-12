@@ -54,6 +54,15 @@ jobs:
           # key lives in repo secrets; the public key is in tauri.conf.json.
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          # linuxdeploy copies the runner's libwayland-* into the AppImage
+          # (usr/lib). The AppRun prepends that dir to LD_LIBRARY_PATH, so the
+          # app loads the runner's (jammy) libwayland-client while the host's
+          # EGL/Mesa loads the system copy. Two libwayland copies split the
+          # Wayland proxy registry and the WebKit web process aborts with
+          # "Could not create default EGL display: EGL_BAD_PARAMETER" on
+          # newer hosts (no window ever maps). Wayland is a protocol: the
+          # app must use the host's implementation. fnmatch on sonames.
+          LINUXDEPLOY_EXCLUDED_LIBRARIES: "libwayland-client.so*;libwayland-cursor.so*;libwayland-egl.so*;libwayland-server.so*"
         with:
           tagName: v__VERSION__
           releaseName: "Trackfecta v__VERSION__"

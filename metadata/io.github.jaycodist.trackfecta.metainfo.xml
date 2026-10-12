@@ -69,6 +69,17 @@
   <launchable type="desktop-id">io.github.jaycodist.trackfecta.desktop</launchable>
 
   <releases>
+    <release version="1.0.1" date="2026-10-11">
+      <description>
+        <p>Packaging fixes, no app-code changes.</p>
+        <ul>
+          <li>AppImage: uses the host Wayland libraries, so the window opens
+            reliably on modern Wayland desktops</li>
+          <li>Snap: launcher entry and keyring guidance fixed</li>
+          <li>Full-size icons for the deb, rpm, and AppImage launchers</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.0.0" date="2026-10-04">
       <description>
         <p>First packaged release.</p>
