@@ -29,3 +29,9 @@ result/
 # Snap packaging output (snapcraft remote-build downloads these here)
 *.snap
 snapcraft-trackfecta-*.txt
+
+# Flatpak local validation output
+flatpak/.flatpak-builder/
+flatpak/build-dir/
+flatpak/repo/
+flatpak/*.flatpak

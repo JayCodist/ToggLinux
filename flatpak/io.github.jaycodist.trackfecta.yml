@@ -1,22 +1,4 @@
-# Trackfecta Flatpak manifest (Flathub submission starting point).
-#
-# The app is a Tauri v2 (Rust + WebKitGTK) tray client. The build runs the
-# normal Tauri pipeline offline, produces a .deb, then unpacks the .deb into
-# the Flatpak tree. This is the standard Tauri-on-Flathub flow.
-#
-# THIS MANIFEST IS NOT YET VALIDATED. Building it needs two generated source
-# files next to it (cargo-sources.json and npm-sources.json). Create them
-# with:
-#   flatpak-cargo-generator src-tauri/Cargo.lock -o flatpak/cargo-sources.json
-#   flatpak-node-generator npm package-lock.json -o flatpak/npm-sources.json
-# Then build with flatpak-builder. Flathub review is strict about D-Bus names
-# and filesystem grants, so expect a round of edits before it passes. See the
-# README, "Packaging status".
-#
-# The app id is a code-hosting id (io.github.<user>.<repo>) because Flathub
-# requires control over the domain a com.* id implies, and ids must not end in
-# generic terms like ".app". It matches src-tauri/tauri.conf.json "identifier"
-# and the metainfo id in metadata/.
+# Trackfecta Flatpak manifest
 app-id: io.github.jaycodist.trackfecta
 runtime: org.gnome.Platform
 runtime-version: '49'
@@ -35,30 +17,20 @@ finish-args:
   # Display: X11 with a Wayland fallback.
   - --socket=fallback-x11
   - --socket=wayland
-  # GPU for WebKitGTK.
   - --device=dri
   - --share=ipc
-  # Network for the Toggl API and the GitHub Releases update check.
   - --share=network
-  # Tray: StatusNotifierItem (AppIndicator). Talk to the host, own the item.
   - --talk-name=org.kde.StatusNotifierWatcher
-  - --own-name=org.kde.StatusNotifierItem-*
+  - --own-name=org.kde.StatusNotifierItem-2-1
+  - --own-name=org.kde.StatusNotifierItem-2-2
   - --filesystem=xdg-run/tray-icon:create
-  # OS keyring for the API token (Secret Service).
   - --talk-name=org.freedesktop.secrets
-  # Idle detection: GNOME Mutter IdleMonitor, then freedesktop ScreenSaver.
   - --talk-name=org.gnome.Mutter.IdleMonitor
   - --talk-name=org.freedesktop.ScreenSaver
-  # Sleep and shutdown events: systemd logind on the system bus.
   - --system-talk-name=org.freedesktop.login1
-  # Single instance: the plugin owns <id>.SingleInstance on the session bus.
   - --own-name=io.github.jaycodist.trackfecta.SingleInstance
-  # Open external links (web app, reports) through the Desktop portal.
   - --talk-name=org.freedesktop.portal.Desktop
-  # App data: SQLite cache, logs, and settings.
   - --filesystem=xdg-data/io.github.jaycodist.trackfecta
-  # Autostart writes ~/.config/autostart/. Under Flatpak the desktop entry
-  # must call the sandbox run command for this to have any effect.
   - --filesystem=xdg-config/autostart
 cleanup:
   - /include
@@ -81,35 +53,22 @@ modules:
     sources:
       - type: git
         url: https://github.com/JayCodist/trackfecta.git
-        tag: v1.0.0
-        # Pin the commit for a reproducible build before submission:
-        # commit: 0000000000000000000000000000000000000000
-        # x-checker-data:
-        #   type: git
-        #   tag-pattern: ^v([\d.]+)$
-      - type: file
-        path: cargo-sources.json
-      - type: file
-        path: npm-sources.json
+        tag: v1.0.1
+        commit: 665afaec176604baae0e65d60028433e76fac894
+      - cargo-sources.json
+      - npm-sources.json
     build-commands:
-      # Offline dependency install from the two *-sources.json files.
+      - mv cargo/config cargo/config.toml
       - npm ci --offline
       - cargo --offline fetch --manifest-path src-tauri/Cargo.toml
-      # Build only the .deb. Disable updater artifacts: Flathub delivers
-      # updates, so the in-app self-update is off in the sandbox.
       - npm run tauri:build -- --bundles deb --config
         '{"bundle":{"createUpdaterArtifacts":false}}'
-      # Unpack the .deb. ar writes the members into extracted/, then the data
-      # archive holds the installed tree.
       - mkdir -p extracted
       - cd extracted && ar x ../src-tauri/target/release/bundle/deb/*.deb
       - cd extracted && tar -xf data.tar.*
-      # Binary. Glob the name: it follows productName, not the crate name.
       - |
         bin=$(ls extracted/usr/bin/* | head -n1)
         install -Dm755 "$bin" /app/bin/trackfecta
-      # Desktop entry. Tauri names it after the product name, but Flathub
-      # requires <app-id>.desktop. Rename it and fix Exec/Icon.
       - |
         src=$(ls extracted/usr/share/applications/*.desktop | head -n1)
         install -Dm644 "$src" /app/share/applications/io.github.jaycodist.trackfecta.desktop
@@ -117,8 +76,6 @@ modules:
           /app/share/applications/io.github.jaycodist.trackfecta.desktop
         desktop-file-edit --set-key=Icon --set-value=io.github.jaycodist.trackfecta \
           /app/share/applications/io.github.jaycodist.trackfecta.desktop
-      # Icons at every size the bundle ships, renamed to the app-id so the
-      # desktop entry resolves them inside the sandbox.
       - |
         for f in extracted/usr/share/icons/hicolor/*/apps/*.png; do
           [ -e "$f" ] || continue
@@ -126,14 +83,9 @@ modules:
           install -Dm644 "$f" \
             "/app/share/icons/hicolor/$size/apps/io.github.jaycodist.trackfecta.png"
         done
-      # Scalable icon. Flathub prefers an SVG, and the upstream logo is one.
       - install -Dm644 src-tauri/icons/trackfecta-logo.svg
         /app/share/icons/hicolor/scalable/apps/io.github.jaycodist.trackfecta.svg
-      # Metainfo ships in the upstream repo (metadata/), as Flathub requires.
-      # The Tauri bundler does not generate one, so install it from source.
       - install -Dm644 metadata/io.github.jaycodist.trackfecta.metainfo.xml
         /app/share/metainfo/io.github.jaycodist.trackfecta.metainfo.xml
-      # License file, per Flathub policy. flatpak-builder's automatic
-      # license-files handling does not apply to a simple buildsystem.
       - install -Dm644 LICENSE
         /app/share/licenses/io.github.jaycodist.trackfecta/LICENSE
