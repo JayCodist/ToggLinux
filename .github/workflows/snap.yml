@@ -1,0 +1,86 @@
+name: Snap Store
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# No Launchpad remote-build. Each arch packs natively on a matching GitHub
+# hosted runner, so snapcraft never has to cross-compile or boot a VM.
+# ubuntu-24.04 matches the snap base (core24), which lets snapcraft build
+# directly on the runner host with --destructive-mode.
+jobs:
+  build-snap:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            arch: amd64
+          - runner: ubuntu-24.04-arm
+            arch: arm64
+    name: Pack ${{ matrix.arch }}
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install snapcraft
+        run: |
+          sudo snap install snapcraft --classic
+          snapcraft --version
+
+      - name: Pack
+        run: snapcraft pack --destructive-mode -v
+
+      - name: Store snap artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: trackfecta-snap-${{ matrix.arch }}
+          path: trackfecta_*.snap
+          if-no-files-found: error
+
+  # Tag pushes upload each arch to candidate, then promote the same
+  # revisions to stable. Store auto-validation runs between upload and
+  # release; a rejected upload fails this job before stable moves.
+  publish:
+    needs: build-snap
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: trackfecta-snap-*
+          merge-multiple: true
+
+      - name: Install snapcraft
+        run: sudo snap install snapcraft --classic
+
+      - name: Upload to candidate and collect revisions
+        id: upload
+        env:
+          SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
+        run: |
+          set -euo pipefail
+          revisions=()
+          for snap in trackfecta_*.snap; do
+            # Upload prints e.g. "Revision 5 created for 'trackfecta' and
+            # released to 'candidate'". Capture the number per file.
+            out=$(snapcraft upload --release=candidate "$snap" 2>&1 | tee /dev/stderr)
+            rev=$(printf '%s\n' "$out" | grep -oP "Revision \K[0-9]+(?= created)")
+            echo "uploaded $snap -> revision $rev"
+            revisions+=("$rev")
+          done
+          echo "revisions=${revisions[*]}" >> "$GITHUB_OUTPUT"
+
+      - name: Promote to stable
+        env:
+          SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
+        run: |
+          set -euo pipefail
+          for rev in ${{ steps.upload.outputs.revisions }}; do
+            snapcraft release trackfecta "$rev" stable
+          done

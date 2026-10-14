@@ -31,7 +31,7 @@
         href="https://track.toggl.com/profile"
         target="_blank"
         rel="noreferrer">profile page</a>.
-      It is stored securely on this device — in your system keyring when one is
+      It is stored securely on this device, in your system keyring when one is
       available, otherwise in Trackfecta's private app data.
     </p>
     <input

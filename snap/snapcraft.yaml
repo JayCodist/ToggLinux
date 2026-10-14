@@ -11,12 +11,12 @@
 # VALIDATED 2026-10-07: builds (local LXD + Launchpad remote-build amd64/
 # arm64), installs strict, window + tray render. Keyring needs the
 # password-manager-service plug AND the app must use the D-Bus Secret Service
-# backend (keyring crate "sync-secret-service"), NOT the kernel keyutils one —
+# backend (keyring crate "sync-secret-service"), NOT the kernel keyutils one,
 # strict snaps are denied `keyctl` by AppArmor.
 # NOTE: password-manager-service is a manual-connect interface, so fresh users
 # must run `sudo snap connect trackfecta:password-manager-service` once. The
 # snapcraft 9 (core24) recipe schema has no top-level `connections:` key to
-# request auto-connect — that policy lives in the store's snap declaration, so
+# request auto-connect, that policy lives in the store's snap declaration, so
 # an auto-connect rule must be requested from Canonical (snapcraft forum,
 # store-review category). Until granted, the app shows the connect command in
 # its keyring error toast (see src-tauri/secrets.rs).
@@ -77,7 +77,7 @@ apps:
     # The gnome extension already assigns desktop, desktop-legacy, gsettings,
     # opengl, wayland and x11. These are the only extras this app needs, listed
     # explicitly on the app (not implicitly via the global plugs: stanza).
-    # NOTE: `network` is NOT provided by the gnome extension — without it a
+    # NOTE: `network` is NOT provided by the gnome extension, without it a
     # strict snap cannot even create a TCP socket (connect → EACCES).
     plugs:
       - network
