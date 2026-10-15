@@ -34,7 +34,10 @@ jobs:
           snapcraft --version
 
       - name: Pack
-        run: snapcraft pack --destructive-mode -v
+        # Destructive mode installs apt build-packages on the runner host,
+        # which needs root. Without sudo the runner user cannot refresh the
+        # package list and pack fails before compiling.
+        run: sudo snapcraft pack --destructive-mode -v
 
       - name: Store snap artifact
         uses: actions/upload-artifact@v4
