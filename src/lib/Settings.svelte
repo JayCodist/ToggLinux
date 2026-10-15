@@ -3,11 +3,6 @@
   import { getVersion } from "@tauri-apps/api/app";
   import { listen } from "@tauri-apps/api/event";
   import {
-    disable as disableAutostart,
-    enable as enableAutostart,
-    isEnabled,
-  } from "@tauri-apps/plugin-autostart";
-  import {
     projectColor,
     applyTheme,
     dotColor,
@@ -204,7 +199,7 @@
 
   $effect(() => {
     loadSettings();
-    isEnabled()
+    invoke<boolean>("get_autostart")
       .then((v) => (autostart = v))
       .catch(() => {});
   });
@@ -305,8 +300,9 @@
   async function toggleAutostart() {
     autostartBusy = true;
     try {
-      if (autostart) await disableAutostart();
-      else await enableAutostart();
+      // The backend picks the path: the Background portal inside a
+      // Flatpak sandbox, the plugin's .desktop entry everywhere else.
+      await invoke("set_autostart", { enable: !autostart });
       autostart = !autostart;
     } catch (e) {
       error = String(e);

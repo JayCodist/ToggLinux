@@ -69,6 +69,18 @@
   <launchable type="desktop-id">io.github.jaycodist.trackfecta.desktop</launchable>
 
   <releases>
+    <release version="1.0.2" date="2026-10-15">
+      <description>
+        <p>Launch at login now works in the Flatpak build.</p>
+        <ul>
+          <li>Inside a Flatpak, the autostart toggle registers the real login
+            entry through the XDG Background portal instead of writing a file
+            the host session never reads</li>
+          <li>The portal starts the app minimized to the tray, like the other
+            packaged builds</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.0.1" date="2026-10-11">
       <description>
         <p>Packaging fixes, no app-code changes.</p>

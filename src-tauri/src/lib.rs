@@ -1,3 +1,5 @@
+#[cfg(target_os = "linux")]
+mod autostart;
 mod budget;
 mod idle;
 mod logger;
@@ -17,6 +19,7 @@ use tauri::{
     tray::TrayIconBuilder,
     AppHandle, Emitter, Manager, WebviewWindow, Wry,
 };
+use tauri_plugin_autostart::ManagerExt;
 
 use state::{broadcast, mark_disconnected, AppState, LastEntry, TimerState, TrayItems};
 use store::{EntryRow, PickerProject};
@@ -364,6 +367,46 @@ fn set_setting(
     // The requests-left number can change with the new cap.
     broadcast(&app);
     Ok(())
+}
+
+/// Enables or disables launch at login. Inside a Flatpak sandbox the
+/// autostart plugin cannot work: its `.desktop` file lands in the sandbox
+/// copy of the autostart directory, which the host session never reads.
+/// Those builds go through the XDG Background portal instead, which writes
+/// the real host entry. See `autostart.rs`.
+#[tauri::command]
+fn set_autostart(app: tauri::AppHandle<Wry>, enable: bool) -> Result<(), String> {
+    #[cfg(target_os = "linux")]
+    if autostart::in_flatpak() {
+        autostart::request(enable)?;
+        // The portal offers no getter. The stored choice is what the
+        // Settings switch shows after the next start.
+        if let Some(store) = app.state::<AppState>().store.as_ref() {
+            store.set_setting("autostart", if enable { "true" } else { "false" });
+        }
+        return Ok(());
+    }
+    if enable {
+        app.autolaunch().enable().map_err(|e| e.to_string())
+    } else {
+        app.autolaunch().disable().map_err(|e| e.to_string())
+    }
+}
+
+/// The current launch-at-login state for the Settings switch.
+#[tauri::command]
+fn get_autostart(app: tauri::AppHandle<Wry>) -> bool {
+    #[cfg(target_os = "linux")]
+    if autostart::in_flatpak() {
+        return app
+            .state::<AppState>()
+            .store
+            .as_ref()
+            .and_then(|s| s.get_setting("autostart"))
+            .map(|v| v == "true")
+            .unwrap_or(false);
+    }
+    app.autolaunch().is_enabled().unwrap_or(false)
 }
 
 /// Edits an entry. Writes the change to the cache at once and puts the push
@@ -1044,6 +1087,8 @@ pub fn run() {
             get_picker_tags,
             get_settings,
             set_setting,
+            set_autostart,
+            get_autostart,
             get_workspaces,
             switch_workspace,
             update_entry,

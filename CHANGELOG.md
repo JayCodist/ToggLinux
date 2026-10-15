@@ -14,6 +14,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   organisation keeps its own entries, projects, clients, tags, and sync
   cursor in the local cache. A running timer keeps running when you switch.
 
+## [1.0.2] - 2026-10-15
+
+### Fixed
+
+- Launch at login now works in the Flatpak build. The autostart plugin wrote
+  its entry inside the sandbox, where the host session never reads it. Inside
+  a Flatpak, the Settings toggle now goes through the XDG Background portal,
+  which registers the real login entry and starts the app minimized to the
+  tray. Native builds keep the plugin path.
+
 ## [1.0.1] - 2026-10-11
 
 Packaging fixes. No app-code changes.

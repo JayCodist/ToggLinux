@@ -1,6 +1,6 @@
 [package]
 name = "trackfecta"
-version = "1.0.1"
+version = "1.0.2"
 description = "Unofficial Toggl Track desktop client for Linux"
 authors = ["Trackfecta contributors"]
 license = "MIT"
