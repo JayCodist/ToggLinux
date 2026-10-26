@@ -40,6 +40,7 @@
     "linux": {
       "deb": {
         "depends": ["libwebkit2gtk-4.1-0", "libayatana-appindicator3-1"],
+        "desktopTemplate": "desktop-template.hbs",
         "files": {
           "/usr/share/icons/hicolor/scalable/apps/trackfecta.svg": "icons/trackfecta-logo.svg",
           "/usr/share/icons/hicolor/16x16/apps/trackfecta.png": "icons/hicolor/trackfecta-16.png",
@@ -57,6 +58,7 @@
         }
       },
       "rpm": {
+        "desktopTemplate": "desktop-template.hbs",
         "files": {
           "/usr/share/icons/hicolor/scalable/apps/trackfecta.svg": "icons/trackfecta-logo.svg",
           "/usr/share/icons/hicolor/16x16/apps/trackfecta.png": "icons/hicolor/trackfecta-16.png",

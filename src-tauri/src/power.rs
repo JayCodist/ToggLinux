@@ -3,6 +3,12 @@
 //! timer keeps counting through the sleep, and a shutdown leaves the entry
 //! running on the server.
 //!
+//! The resume side of `PrepareForSleep` also triggers a refresh. Sleep
+//! pauses the monotonic clock that the request budget uses, so the loop
+//! can wake thinking the whole hour is spent and never poll. Without a
+//! refresh, the UI keeps showing the pre-sleep day: an app that slept
+//! past midnight labels yesterday's entries "Today".
+//!
 //! Backend: systemd logind on the system bus. It sends `PrepareForSleep`
 //! and `PrepareForShutdown` with a boolean that is true just before the
 //! action. Both signals are present on any systemd distro (Ubuntu, Debian).
@@ -66,13 +72,33 @@ fn watch(app: AppHandle<Wry>, signal: &'static str) {
     crate::logger::log("info", &format!("power: watching {signal}"));
     for msg in iter {
         // Both signals carry one boolean: true means the action is about to
-        // happen. The false (resume) case is ignored.
+        // happen. PrepareForSleep with false means the machine just resumed.
         if let Ok((active,)) = msg.body().deserialize::<(bool,)>() {
             if active {
                 handle(&app, signal);
+            } else if signal == "PrepareForSleep" {
+                on_resume(&app);
             }
         }
     }
+}
+
+/// The machine just resumed from sleep. Refresh once now, and once more
+/// shortly if the network was not back yet. The refresh pulls any entries
+/// tracked elsewhere overnight, recomputes the day total against the new
+/// local date, and broadcasts, so the list and the tray show the right
+/// day. It also nudges the sync loop so queued pushes go out.
+fn on_resume(app: &AppHandle<Wry>) {
+    crate::logger::log("info", "power: resumed from sleep");
+    app.state::<crate::state::AppState>().wakeup.notify_one();
+    let a = app.clone();
+    tauri::async_runtime::spawn(async move {
+        if crate::sync::refresh(&a).await.is_err() {
+            // Wi-Fi and VPN commonly need a few seconds to re-associate.
+            tokio::time::sleep(std::time::Duration::from_secs(15)).await;
+            let _ = crate::sync::refresh(&a).await;
+        }
+    });
 }
 
 /// Stops the running timer if the feature is on. Reads the setting fresh, so

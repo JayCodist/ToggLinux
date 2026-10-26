@@ -235,6 +235,9 @@ struct AppSettings {
     idle_enabled: bool,
     /// Idle threshold in minutes. Default 5, to match Toggl.
     idle_threshold_min: i64,
+    /// Merge same-day entries with the same description, project and client
+    /// into one cluster row. On by default, like the official clients.
+    group_entries: bool,
     /// The global shortcut accelerator, such as CommandOrControl+Alt+D.
     hotkey: String,
     /// Whether the global shortcut is on. On by default.
@@ -293,6 +296,12 @@ fn get_settings(app: tauri::AppHandle<Wry>) -> AppSettings {
         .and_then(|v| v.parse().ok())
         .filter(|m: &i64| (1..=240).contains(m))
         .unwrap_or(5);
+    let group_entries = st
+        .store
+        .as_ref()
+        .and_then(|s| s.get_setting("group_entries"))
+        .map(|v| v != "false")
+        .unwrap_or(true);
     let hotkey = st
         .store
         .as_ref()
@@ -313,6 +322,7 @@ fn get_settings(app: tauri::AppHandle<Wry>) -> AppSettings {
         stop_on_sleep,
         idle_enabled,
         idle_threshold_min,
+        group_entries,
         hotkey,
         hotkey_enabled,
         wayland: is_wayland(),

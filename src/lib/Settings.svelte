@@ -25,6 +25,7 @@
 
   let theme = $state("system");
   let traySeconds = $state(false);
+  let groupEntries = $state(true);
 
   let idleEnabled = $state(true);
   let idleMin = $state("5");
@@ -214,6 +215,7 @@
         stopOnSleep: boolean;
         idleEnabled: boolean;
         idleThresholdMin: number;
+        groupEntries: boolean;
         hotkey: string;
         hotkeyEnabled: boolean;
         wayland: boolean;
@@ -223,6 +225,7 @@
       defaultProjectId = s.defaultProjectId;
       theme = s.theme ?? "system";
       traySeconds = s.trayShowSeconds ?? false;
+      groupEntries = s.groupEntries ?? true;
       stopOnSleep = s.stopOnSleep ?? true;
       idleEnabled = s.idleEnabled ?? true;
       idleMin = String(s.idleThresholdMin ?? 5);
@@ -347,6 +350,19 @@
       });
     } catch (e) {
       idleEnabled = !idleEnabled;
+      error = String(e);
+    }
+  }
+
+  async function toggleGroupEntries() {
+    groupEntries = !groupEntries;
+    try {
+      await invoke("set_setting", {
+        key: "group_entries",
+        value: groupEntries ? "true" : "false",
+      });
+    } catch (e) {
+      groupEntries = !groupEntries;
       error = String(e);
     }
   }
@@ -691,6 +707,25 @@
             aria-checked={traySeconds}
             aria-label="Show seconds in tray icon"
             onclick={toggleTraySeconds}
+          ></button>
+        </div>
+      </div>
+      <div class="set-row">
+        <div class="set-main">
+          <div class="set-label">Group entries</div>
+          <div class="set-hint">
+            Merge entries with the same description, project and client on
+            the same day into one row, like the official Toggl clients.
+          </div>
+        </div>
+        <div class="set-ctl">
+          <button
+            class="switch"
+            class:on={groupEntries}
+            role="switch"
+            aria-checked={groupEntries}
+            aria-label="Group entries"
+            onclick={toggleGroupEntries}
           ></button>
         </div>
       </div>

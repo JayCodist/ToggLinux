@@ -40,31 +40,143 @@
    * expanded. */
   let collapsed = $state<Set<string>>(new Set());
 
-  function toggleGroup(key: string) {
+  /** The keys of the cluster rows that the user opened. Clusters start
+   * collapsed, so the list shows one row per merged group. */
+  let expandedClusters = $state<Set<string>>(new Set());
+
+  function toggleCollapse(key: string) {
     const next = new Set(collapsed);
     if (next.has(key)) next.delete(key);
     else next.add(key);
     collapsed = next;
   }
 
-  /** The entries grouped by local day, newest day first. The list is already
-   * sorted. A running row counts its live elapsed time, so the day total
-   * ticks. */
+  function toggleCluster(key: string) {
+    const next = new Set(expandedClusters);
+    if (next.has(key)) next.delete(key);
+    else next.add(key);
+    expandedClusters = next;
+  }
+
+  /** Local midnight of the current day. Its value changes only at
+   * midnight, so anything that reads it re-computes when the day turns
+   * over, even with no new data. This is what re-labels the headers when
+   * the app is left open across midnight or wakes from suspend into a new
+   * day. */
+  const todayKey = $derived(startOfDay(Math.floor(now / 1000)));
+
+  /** Whether same-day entries with the same title, project and client
+   * merge into a cluster row. Read from Settings when this view mounts,
+   * so a change applies as soon as the user returns to the list. */
+  let groupEntries = $state(true);
+  $effect(() => {
+    invoke<{ groupEntries: boolean }>("get_settings")
+      .then((s) => (groupEntries = s.groupEntries ?? true))
+      .catch(() => {});
+    return () => {};
+  });
+
+  /** Entries with the same description, project and client on the same day
+   * merge into one cluster row, like the Toggl web and desktop clients.
+   * Tags and billable flags stay on each entry. */
+  function clusterSig(e: EntryRow): string {
+    return JSON.stringify([
+      e.description ?? "",
+      e.projectId ?? "",
+      e.clientName ?? "",
+    ]);
+  }
+
+  /** The summary shown on a merged row. */
+  type Cluster = {
+    sig: string;
+    /** Sum of entry durations, Unix seconds. A running entry counts its
+     * live elapsed time. */
+    secs: number;
+    /** Earliest start in the cluster, Unix seconds. */
+    minStart: number;
+    /** Latest stop in the cluster, Unix seconds. A running entry counts
+     * as now. */
+    maxStop: number;
+    /** True when the cluster holds a running entry. */
+    running: boolean;
+    /** True when the cluster holds a dirty entry. */
+    dirty: boolean;
+    /** True when the cluster holds a billable entry. */
+    billable: boolean;
+    /** Tags across all entries, first-seen order. */
+    tags: string[];
+  };
+
+  /** Entries in one day that render as one merged row, or stand alone when
+   * nothing else in the day matches them. */
+  type DayItem = {
+    rows: EntryRow[];
+    cluster: Cluster;
+  };
+
+  /** The collapse key for one item in a day. Clusters key on their
+   * signature; a lone entry keys on its id. */
+  function itemKey(dayKey: string, it: DayItem): string {
+    return it.rows.length > 1
+      ? `${dayKey}|${it.cluster.sig}`
+      : `e:${it.rows[0].id}`;
+  }
+
+  /** The entries grouped by local day, newest day first. The list is
+   * already sorted. Inside a day, entries that share a description,
+   * project and client merge into one cluster, even when other entries
+   * sit between them. A running row counts its live elapsed time, so the
+   * day total ticks. */
   const groups = $derived.by(() => {
-    const out: { key: string; label: string; secs: number; rows: EntryRow[] }[] =
-      [];
+    const out: {
+      key: string;
+      label: string;
+      secs: number;
+      items: DayItem[];
+    }[] = [];
+    const nowSecs = Math.floor(now / 1000);
     for (const e of timer.entries) {
       const key = String(startOfDay(e.start));
       let g = out.find((x) => x.key === key);
       if (!g) {
-        g = { key, label: dayLabel(e.start), secs: 0, rows: [] };
+        g = { key, label: dayLabel(e.start, todayKey), secs: 0, items: [] };
         out.push(g);
       }
-      g.rows.push(e);
-      g.secs +=
-        e.stop !== null
-          ? e.stop - e.start
-          : Math.max(0, Math.floor(now / 1000) - e.start);
+      const dur =
+        e.stop !== null ? e.stop - e.start : Math.max(0, nowSecs - e.start);
+      g.secs += dur;
+      // With grouping off, every entry keeps its own signature, so each
+      // forms a single-row item.
+      const sig = groupEntries
+        ? clusterSig(e)
+        : JSON.stringify(["single", e.id]);
+      let item = g.items.find((i) => i.cluster.sig === sig);
+      if (!item) {
+        item = {
+          rows: [],
+          cluster: {
+            sig,
+            secs: 0,
+            minStart: e.start,
+            maxStop: e.stop ?? nowSecs,
+            running: e.stop === null,
+            dirty: e.dirty,
+            billable: e.billable,
+            tags: [],
+          },
+        };
+        g.items.push(item);
+      }
+      const c = item.cluster;
+      c.secs += dur;
+      c.minStart = Math.min(c.minStart, e.start);
+      c.maxStop = Math.max(c.maxStop, e.stop ?? nowSecs);
+      c.running ||= e.stop === null;
+      c.dirty ||= e.dirty;
+      c.billable ||= e.billable;
+      for (const t of e.tags) if (!c.tags.includes(t)) c.tags.push(t);
+      item.rows.push(e);
     }
     return out;
   });
@@ -261,9 +373,9 @@
       {@const isCollapsed = collapsed.has(g.key)}
       <div class="day-head" class:collapsed={isCollapsed} role="button"
         tabindex={0}
-        onclick={() => toggleGroup(g.key)}
+        onclick={() => toggleCollapse(g.key)}
         onkeydown={(e) => {
-          if (e.key === "Enter" || e.key === " ") toggleGroup(g.key);
+          if (e.key === "Enter" || e.key === " ") toggleCollapse(g.key);
         }}
       >
         <span class="day-title">{g.label}</span>
@@ -273,7 +385,77 @@
 
       {#if !isCollapsed}
         <div class="rows">
-          {#each g.rows as e (e.id)}
+          {#each g.items as it (itemKey(g.key, it))}
+            {@const key = itemKey(g.key, it)}
+            {@const isCluster = it.rows.length > 1}
+            {@const isOpen = expandedClusters.has(key)}
+            {#if isCluster}
+              {@const head = it.rows[0]}
+              {@const c = it.cluster}
+              <div class="row cluster-head" class:closed={!isOpen} role="button"
+                tabindex={0}
+                onclick={() => toggleCluster(key)}
+                onkeydown={(ev) => {
+                  if (ev.key === "Enter" || ev.key === " ") toggleCluster(key);
+                }}
+              >
+                <span class="chev"><Icons name="chevron" /></span>
+                <div class="row-body">
+                  <span class="row-desc" class:untitled={!head.description}>
+                    {head.description ?? "Untitled"}
+                    <span class="cluster-count">{it.rows.length}</span>
+                  </span>
+                  <div class="row-sub">
+                    {#if head.projectName}
+                      <span
+                        class="row-project"
+                        style="color:{dotColor(head.projectColor, head.projectName)}"
+                      >
+                        <span
+                          class="dot"
+                          style="background:{dotColor(head.projectColor, head.projectName)}"
+                        ></span>
+                        {head.projectName}
+                      </span>
+                    {/if}
+                    {#if head.clientName}
+                      <span class="row-client">{head.clientName}</span>
+                    {/if}
+                    {#each c.tags as t (t)}
+                      <span class="row-tag">{t}</span>
+                    {/each}
+                  </div>
+                </div>
+                {#if c.dirty}
+                  <span class="dirty-dot" title="Not synced yet">●</span>
+                {/if}
+                {#if c.billable}
+                  <span class="row-billable" title="Billable">
+                    <Icons name="dollar" />
+                  </span>
+                {/if}
+                {#if c.running}
+                  <span class="row-dur running">{fmtDuration(c.secs)}</span>
+                  <button
+                    class="row-stop"
+                    title="Stop timer"
+                    aria-label="Stop timer"
+                    onclick={(ev) => {
+                      ev.stopPropagation();
+                      invoke("stop_timer").catch((err) => (error = String(err)));
+                    }}
+                  >
+                    <i></i>
+                  </button>
+                {:else}
+                  <span class="row-time">{fmtClock(c.minStart)} - {fmtClock(c.maxStop)}</span>
+                  <span class="row-dur">{fmtDuration(c.secs)}</span>
+                {/if}
+              </div>
+            {/if}
+            {#if !isCluster || isOpen}
+              <div class="cluster-rows" class:nested={isCluster}>
+          {#each it.rows as e (e.id)}
             {@const isRunning = e.id === runningId}
             <div class="row">
               {#if editing === e.id}
@@ -396,6 +578,9 @@
                 {/if}
               {/if}
             </div>
+          {/each}
+              </div>
+            {/if}
           {/each}
         </div>
       {/if}

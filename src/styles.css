@@ -712,6 +712,54 @@ button.timer-text:hover {
   margin-bottom: 8px;
 }
 
+/* A merged group: entries with the same description, project and client
+   on the same day. The head row summarises them and opens the details. */
+.cluster-head {
+  cursor: pointer;
+  user-select: none;
+}
+.cluster-head .chev {
+  color: var(--muted);
+  display: inline-flex;
+  flex: none;
+}
+.cluster-head .chev svg {
+  width: 14px;
+  height: 14px;
+  transition: transform 0.15s ease;
+  /* Open: point down at the detail rows. */
+  transform: rotate(180deg);
+}
+.cluster-head.closed .chev svg {
+  transform: rotate(90deg);
+}
+.cluster-count {
+  display: inline-block;
+  margin-left: 7px;
+  padding: 1px 7px;
+  border-radius: 5px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted-2);
+  font-variant-numeric: tabular-nums;
+  vertical-align: 1px;
+}
+/* The detail rows under an open cluster head. Indented deeper and on a
+   darker canvas than the panel rows, so they read as children of the
+   cluster. They keep the full row layout and height. */
+.cluster-rows.nested {
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+.cluster-rows.nested .row {
+  padding-left: 48px;
+}
+.cluster-rows.nested .row:hover {
+  background: var(--row-hover);
+}
+
 .row {
   display: flex;
   align-items: center;

@@ -6,7 +6,6 @@ import tailwindcss from "@tailwindcss/vite";
 const host = process.env.TAURI_DEV_HOST;
 
 export default defineConfig({
-  extensions: ["js", "ts", "svelte"],
   plugins: [svelte(), tailwindcss()],
   clearScreen: false,
   server: {
@@ -21,7 +20,15 @@ export default defineConfig({
         }
       : undefined,
     watch: {
-      ignored: ["**/src-tauri/**"],
+      // flatpak/build-dir holds a copied udev watch tree with symlink loops,
+      // which crashes the file watcher (ELOOP).
+      ignored: [
+        "**/src-tauri/**",
+        "**/flatpak/**",
+        "**/.flatpak-builder/**",
+        "**/snap/**",
+        "**/target/**",
+      ],
     },
   },
 });

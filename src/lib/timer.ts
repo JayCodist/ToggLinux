@@ -68,6 +68,8 @@ export type AppSettings = {
   idleEnabled: boolean;
   /** Idle threshold in minutes. Default 5. */
   idleThresholdMin: number;
+  /** Merge same-day entries with the same title, project and client. */
+  groupEntries: boolean;
   /** The global shortcut accelerator, such as "CommandOrControl+Alt+D". */
   hotkey: string;
   /** Whether the global shortcut is on. */
@@ -199,13 +201,15 @@ export function startOfDay(ts: number): number {
 
 /**
  * The Toggl desktop section header: "Today", "Yesterday", or a date such as
- * "Mon, 08 Aug".
+ * "Mon, 08 Aug". `today` is the caller's current local midnight. Passing it
+ * (instead of reading the clock here) lets the list re-label the headers
+ * when the day changes while the app sits open across midnight.
  */
-export function dayLabel(startTs: number): string {
-  const today = startOfDay(Math.floor(Date.now() / 1000));
+export function dayLabel(startTs: number, today?: number): string {
+  const now = today ?? startOfDay(Math.floor(Date.now() / 1000));
   const day = startOfDay(startTs);
-  if (day === today) return "Today";
-  if (day === today - 86400) return "Yesterday";
+  if (day === now) return "Today";
+  if (day === now - 86400) return "Yesterday";
   return new Date(startTs * 1000).toLocaleDateString([], {
     weekday: "short",
     day: "2-digit",
