@@ -69,6 +69,19 @@
   <launchable type="desktop-id">io.github.jaycodist.trackfecta.desktop</launchable>
 
   <releases>
+    <release version="1.0.3" date="2026-10-26">
+      <description>
+        <p>Organisation switching, entry grouping, and refresh fixes.</p>
+        <ul>
+          <li>Switch between the organisations on your account from Settings.
+            A running timer keeps running across the switch</li>
+          <li>Same-day entries with the same description, project and client
+            merge into one row, like the official Toggl clients</li>
+          <li>The day list and tray refresh after the machine resumes from
+            sleep, so the headers always show the right day</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.0.2" date="2026-10-15">
       <description>
         <p>Launch at login now works in the Flatpak build.</p>

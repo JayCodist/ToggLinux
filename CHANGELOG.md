@@ -6,13 +6,28 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.0.3] - 2026-10-26
+
 ### Added
 
 - Organisation (workspace) switching. The app lists every organisation your
   account belongs to. The switcher is a dropdown in Settings, in the Account
-  section. Each
-  organisation keeps its own entries, projects, clients, tags, and sync
-  cursor in the local cache. A running timer keeps running when you switch.
+  section. Each organisation keeps its own entries, projects, clients, tags,
+  and sync cursor in the local cache. A running timer keeps running when you
+  switch.
+- Entry grouping. Entries with the same description, project and client on
+  the same day merge into one cluster row, like the official Toggl clients.
+  On by default, with a toggle in Settings.
+
+### Fixed
+
+- After the machine resumes from sleep, the app refreshes the day list and
+  tray once the network is back. Before, an app that slept past midnight
+  kept labeling yesterday's entries "Today", and the sync loop could wake
+  thinking its whole request budget was already spent.
+- Day headers re-label when the day changes while the window is open.
+- The deb and rpm packages carry a desktop file with proper Keywords and
+  StartupWMClass, so launchers group windows and find the app by name.
 
 ## [1.0.2] - 2026-10-15
 
