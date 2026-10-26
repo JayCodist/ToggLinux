@@ -388,7 +388,10 @@
     }
     error = null;
     try {
-      await invoke("set_setting", { key: "idle_threshold_min", value: idleMin });
+      await invoke("set_setting", {
+        key: "idle_threshold_min",
+        value: idleMin,
+      });
       note = "Idle threshold saved.";
     } catch (e) {
       error = String(e);
@@ -418,10 +421,14 @@
     const key = e.code;
     // Modifier-only presses are not a complete shortcut. Keep listening.
     if (
-      key === "ShiftLeft" || key === "ShiftRight" ||
-      key === "ControlLeft" || key === "ControlRight" ||
-      key === "AltLeft" || key === "AltRight" ||
-      key === "MetaLeft" || key === "MetaRight" ||
+      key === "ShiftLeft" ||
+      key === "ShiftRight" ||
+      key === "ControlLeft" ||
+      key === "ControlRight" ||
+      key === "AltLeft" ||
+      key === "AltRight" ||
+      key === "MetaLeft" ||
+      key === "MetaRight" ||
       key === "OS"
     ) {
       return null;
@@ -524,12 +531,7 @@
 
   // The accelerator shown in the recorder box, one label per key chip.
   const hotkeyParts = $derived(
-    recHotkey
-      ? recHotkey
-          .split("+")
-          .filter(Boolean)
-          .map(keyLabel)
-      : [],
+    recHotkey ? recHotkey.split("+").filter(Boolean).map(keyLabel) : [],
   );
 
   async function toggleHotkey() {
@@ -586,8 +588,8 @@
           <div class="set-main">
             <div class="set-label">Organisation</div>
             <div class="set-hint">
-              The workspace your entries and projects belong to. A running
-              timer keeps running when you switch.
+              The workspace your entries and projects belong to. A running timer
+              keeps running when you switch.
             </div>
           </div>
           <div class="set-ctl">
@@ -614,7 +616,8 @@
               class="link"
               href="https://track.toggl.com/profile"
               target="_blank"
-              rel="noreferrer">profile page</a>.
+              rel="noreferrer">profile page</a
+            >.
           </div>
         </div>
         <div class="set-ctl">
@@ -659,12 +662,14 @@
             class="link"
             href="https://track.toggl.com/timer"
             target="_blank"
-            rel="noreferrer">Open Track</a>
+            rel="noreferrer">Open Track</a
+          >
           <a
             class="link"
             href="https://track.toggl.com/reports"
             target="_blank"
-            rel="noreferrer">Reports</a>
+            rel="noreferrer">Reports</a
+          >
         </div>
       </div>
     </div>
@@ -714,8 +719,8 @@
         <div class="set-main">
           <div class="set-label">Group entries</div>
           <div class="set-hint">
-            Merge entries with the same description, project and client on
-            the same day into one row, like the official Toggl clients.
+            Merge entries with the same description, project and client on the
+            same day into one row, like the official Toggl clients.
           </div>
         </div>
         <div class="set-ctl">
@@ -818,14 +823,14 @@
         <div class="set-main">
           <div class="set-label">Global shortcut</div>
           <div class="set-hint">
-            Starts or stops the timer from anywhere. Press the keys in the
-            box to record a new shortcut.
+            Starts or stops the timer from anywhere. Press the keys in the box
+            to record a new shortcut.
             {#if wayland}
-              Global shortcuts need an X11 session. On Wayland, GNOME can
-              bind the same keys for you: open Settings app, Keyboard, View
-              and Customize Shortcuts, Custom Shortcuts, and add a command
-              for <code>Trackfecta</code> with your chosen shortcut. In the
-              window, Ctrl+D always works.
+              Global shortcuts need an X11 session. On Wayland, GNOME can bind
+              the same keys for you: open Settings app, Keyboard, View and
+              Customize Shortcuts, Custom Shortcuts, and add a command for <code
+                >Trackfecta</code
+              > with your chosen shortcut. In the window, Ctrl+D always works.
             {/if}
           </div>
         </div>
@@ -889,35 +894,6 @@
             paid plans more. Background sync and every edit spend from this
             pool; raise the cap to match your plan and sync more aggressively.
           </div>
-          <div class="quota-line">
-            <span class="quota-status">
-              <span
-                class="quota-dot"
-                class:low={timer.blocked || timer.requestsLeft <= 3}
-              ></span>
-              {#if timer.blocked}
-                API limit reached. Sync resumes in {fmtWait(timer.nextSyncIn)}.
-              {:else if timer.requestsLeft <= 0}
-                All {savedCap} requests used this hour. Next slot frees in{" "}
-                {fmtWait(timer.nextSyncIn)}.
-              {:else}
-                {timer.requestsLeft} of {savedCap} requests left this hour.
-              {/if}
-            </span>
-            <button
-              class="btn sync"
-              title={canSync
-                ? "Sync now (uses 1 request)"
-                : "No API requests left this hour"}
-              disabled={!canSync || syncing}
-              onclick={syncNow}
-            >
-              <span class="sync-ico" class:spin={syncing}
-                ><Icons name="sync" size={12} /></span
-              >
-              {syncing ? "Syncing…" : "Sync now"}
-            </button>
-          </div>
         </div>
         <div class="set-ctl">
           <input
@@ -929,6 +905,37 @@
             style="width:76px"
           />
           <button class="btn ghost" onclick={saveCap}>Save</button>
+        </div>
+      </div>
+      <div class="set-row">
+        <div class="quota-line">
+          <span class="quota-status">
+            <span
+              class="quota-dot"
+              class:low={timer.blocked || timer.requestsLeft <= 3}
+            ></span>
+            {#if timer.blocked}
+              API limit reached. Sync resumes in {fmtWait(timer.nextSyncIn)}.
+            {:else if timer.requestsLeft <= 0}
+              All {savedCap} requests used this hour. Next slot frees in{" "}
+              {fmtWait(timer.nextSyncIn)}.
+            {:else}
+              {timer.requestsLeft} of {savedCap} requests left this hour.
+            {/if}
+          </span>
+          <button
+            class="btn sync"
+            title={canSync
+              ? "Sync now (uses 1 request)"
+              : "No API requests left this hour"}
+            disabled={!canSync || syncing}
+            onclick={syncNow}
+          >
+            <span class="sync-ico" class:spin={syncing}
+              ><Icons name="sync" size={12} /></span
+            >
+            {syncing ? "Syncing…" : "Sync now"}
+          </button>
         </div>
       </div>
     </div>
@@ -964,8 +971,8 @@
         <div class="set-main">
           <div class="set-label">Recent activity log</div>
           <div class="set-hint">
-            Sync attempts, API errors and crashes are recorded locally.
-            Include the tail when you report a bug.
+            Sync attempts, API errors and crashes are recorded locally. Include
+            the tail when you report a bug.
           </div>
         </div>
         <div class="set-ctl">
@@ -979,7 +986,8 @@
           {#if diag?.logPath}
             <div class="diag-path" title={diag.logPath}>{diag.logPath}</div>
           {/if}
-          <pre class="diag-log">{diag?.logTail?.trim() || "(no log lines yet)"}</pre>
+          <pre class="diag-log">{diag?.logTail?.trim() ||
+              "(no log lines yet)"}</pre>
           <button class="btn ghost" onclick={copyLog}>Copy log</button>
         </div>
       {/if}
@@ -992,7 +1000,9 @@
       <div class="set-row">
         <div class="set-main">
           <div class="set-label">
-            Trackfecta <span class="muted" style="font-weight:400">v{appVersion}</span>
+            Trackfecta <span class="muted" style="font-weight:400"
+              >v{appVersion}</span
+            >
             {#if projects.length > 0}
               <span
                 class="dot"
@@ -1007,7 +1017,11 @@
           </div>
         </div>
         <div class="set-ctl">
-          <button class="btn ghost" disabled={updateBusy} onclick={checkUpdates}>
+          <button
+            class="btn ghost"
+            disabled={updateBusy}
+            onclick={checkUpdates}
+          >
             {updateBusy ? "Checking…" : "Check for updates"}
           </button>
         </div>
@@ -1020,13 +1034,13 @@
             </div>
             {#if updateInfo.storeManaged}
               <div class="update-notes">
-                Your app store delivers updates for this package. Update it
-                with your software center or the command line.
+                Your app store delivers updates for this package. Update it with
+                your software center or the command line.
               </div>
             {:else if !updateInfo.canInstall}
               <div class="update-notes">
-                Download the new package from the release page and install
-                it. This build updates through your package manager.
+                Download the new package from the release page and install it.
+                This build updates through your package manager.
               </div>
             {:else if updateInfo.notes}
               <div class="update-notes">{updateInfo.notes}</div>
@@ -1037,7 +1051,11 @@
               Release page
             </button>
             {#if updateInfo.canInstall}
-              <button class="btn primary" disabled={installing} onclick={installUpdate}>
+              <button
+                class="btn primary"
+                disabled={installing}
+                onclick={installUpdate}
+              >
                 {installing ? "Installing…" : "Update now"}
               </button>
             {/if}
